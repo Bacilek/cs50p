@@ -8,10 +8,9 @@ def main():
 
 def shorten(twitter):
     twttr = ""
-    for word in twitter:
-        for letter in word:
-            if letter.lower() not in VOWELS:
-                twttr += letter
+    for letter in twitter:
+        if letter.lower() not in VOWELS:
+            twttr += letter
     return twttr
 
 
