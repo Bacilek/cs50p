@@ -21,7 +21,6 @@ def main():
     # UNFORMATED
     # print(response.json())
 
-
     # FORMATED
     # print(dumps(response.json(), indent=2))
 
