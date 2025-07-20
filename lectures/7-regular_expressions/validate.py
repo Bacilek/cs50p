@@ -20,13 +20,16 @@ email = input("Email: ")
 ?   \s : whitespace char
 ?   \S : not a whitespace char
 *   | : or
-*   (...) : a group
-*   (?:...) : non-capturing group
+*   (...) : a group, capture (return)
+*   (?:...) : non-capturing group (no return)
     re.IGNOTECASE
     re.MULTILINE
     re.DOTALL
 """
 
 
-if re.search(r"^(\w|\.)+@(\w+\.)?\w+\.edu$", email, re.IGNORECASE):  # r -> raw -> '\' doesn't lead to any escape sequence, just escaping one char
+if re.search(r"^\w+@(\w+\.)?\w+\.edu$", email, re.IGNORECASE):  # r -> raw -> '\' doesn't lead to any escape sequence, just escaping one char
     print("valid")
+
+# re.match(pattern, string, flags) -> same, but automatically matches from the start of the string (no ^ needed)
+# re.fullmatch(pattern, stron, flags) -> same, but autoamtically matches from the start to the end of the strin (no ^ and $ needed)
