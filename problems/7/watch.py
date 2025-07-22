@@ -8,8 +8,7 @@ def parse(s):
     pattern = r"https?://(?:www\.)?youtube\.com/embed/(\w+)\".+$"
     if match := re.search(pattern, s):
         return f"https://youtu.be/{match.group(1)}"
-    else:
-        return "None"
+    return "None"
 
 
 if __name__ == "__main__":
