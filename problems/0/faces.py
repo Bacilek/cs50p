@@ -1,8 +1,7 @@
 def main():
-    text = input()
-    text = text.replace(":)", "🙂")
-    text = text.replace(":(", "🙁")
-    print(text)
+    text = input("Input: ")
+    text = text.replace(":)", "🙂").replace(":(", "🙁")
+    print(f"Output: {text}")
 
 
 main()
