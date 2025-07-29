@@ -7,32 +7,46 @@ class Student:
             raise ValueError("Error: Missing name.")
         if house not in ["Gryffindor", "Hufflepuff", "Ravenclaw", "Slytherin"]:
             raise ValueError("Error: Invalid House.")
+        if not patronus:
+            raise ValueError("Error: Missing patronus")
         self.name = name
         self.house = house
         self.patronus = patronus
+
     # when a function wants to see my object as a string (print, ...)
     def __str__(self):
-        return f"{self.name} from {self.house} with {self.patronus}"
+        return f"{self.name} from {self.house} with a {self.patronus} patronus."
+    
+    def charm(self):
+        match self.patronus:
+            case "Stag":
+                return "🐴"
+            case "Otter":
+                return "🦦"
+            case "Jack Russell Terrier":
+                return "🐶"
+            case _:
+                return "🪄"
+    
+    # can call this without creating an instance/object
+    @classmethod
+    def get(cls):
+        name = input("Name: ")
+        house = input("House: ")
+        patronus = input("Patronus: ")
+        return cls(name, house, patronus)
 
 
 def main():
-    student = get_student()
-    # name == "" and/or house not in valid houses
+    student = Student.get()
+
+    # name, house & patronus valid
     if student is not None:
         print(student) # __str__
+        print(f"Expecto Patronum! {student.charm()}")
+    # name == "" and/or house not in valid houses
     else:
         print("Student creation failed")
-
-
-def get_student():
-    name = input("Name: ")
-    house = input("House: ")
-    patronus = input("Patronus: ")
-    try:
-        return Student(name, house, patronus)  # constructor call -> instantiate Student object
-    except ValueError as e:
-        print(e)  # prints the raises
-        return None
 
 
 if __name__ == "__main__":
