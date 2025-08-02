@@ -77,7 +77,7 @@ def add_habit():
                 data = json.load(file)
             except json.JSONDecodeError:
                 data = []
-    else:
+    else: 
         data = []
 
     if any(habit["name"].lower() == new_name.lower() for habit in data):
@@ -91,7 +91,6 @@ def add_habit():
     with open("data/habits.json", 'w') as file:
         json.dump(data, file, indent=4)
     print(f"Habit '{habit.name}' added successfully.")
-    input("Press enter to continue...")
 
 
 def remove_habit():
@@ -99,8 +98,35 @@ def remove_habit():
 
 
 def list_habits():
-    pass
+    clear_terminal()
+    print("Your habits:\n")
 
+    filename = "data/habits.json"
+
+    if not os.path.exists(filename):
+        print("No habits found.")
+        input("Press Enter to return to menu...")
+        return
+
+    with open(filename, 'r') as file:
+        try:
+            data = json.load(file)
+        except json.JSONDecodeError:
+            print("Habits data is corrupted.")
+            input("Press Enter to return to menu...")
+            return
+
+    if not data:
+        print("You don't have any habits yet.")
+        input("Press Enter to return to menu...")
+        return
+
+    # Format table
+    table = [[i + 1, habit["name"], habit["created"]] for i, habit in enumerate(data)]
+    headers = ["#", "Habit", "Created"]
+
+    print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
+    input("\nPress Enter to return to menu...")
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')  # windows x linux
