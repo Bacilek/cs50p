@@ -5,6 +5,8 @@ import os
 import tabulate
 
 
+FILENAME = "data/habits.json"
+
 class Habit:
     def __init__(self, name):
         if name == "":
@@ -21,7 +23,7 @@ class Habit:
     def unmark_done(self):
         pass
 
-    def format(self):
+    def format_json(self):
         return {
             "name": self.name,
             "created": self.created,
@@ -44,35 +46,43 @@ def main():
         clear_terminal()
         print(f"Welcome back, {username}!")
         print("1. Add a habit")
-        print("1. List habits")
-        print("3. Exit")
+        print("2. Remove a habit")
+        print("3. List habits")
+        print("4. Exit")
         
         action = input("> ")
-        if action == "1":
-            add_habit()
-        elif action == "2":
-            list_habits()
-        elif action == "3":
-            print(f"Goodbye, {username}")
-            break
-        else:
-            print("Invalid choice.")
+        
+        try:
+            if action == "1":
+                add_habit()
+            elif action == "2":
+                remove_habit()
+            elif action == "3":
+                list_habits()
+            elif action == "4":
+                clear_terminal()
+                print(f"Goodbye, {username}")
+                break
+            else:
+                print("Invalid choice.")
+        except Exception as e:
+            clear_terminal()
+            print(f"Error: {e}")
+            input("Press Enter to continue...")
 
 
 def add_habit():
     clear_terminal()
-    print("Add a new habit")
-    new_name = input("New habit name: ")
-    if new_name.strip() == "":
-        print("Habit name cannot be empty.")
-        input("Press Enter to continue...")
-        return
+    print("Add a habit")
+
+    name = input("Habit name: ")
+    if name.strip() == "":
+        raise ValueError("Habit name cannot be empty.")
 
     os.makedirs("data", exist_ok=True)
-    filename = "data/habits.json"
     
-    if os.path.exists(filename):
-        with open(filename, 'r') as file:
+    if os.path.exists(FILENAME):
+        with open(FILENAME, 'r') as file:
             try:
                 data = json.load(file)
             except json.JSONDecodeError:
@@ -80,35 +90,64 @@ def add_habit():
     else: 
         data = []
 
-    if any(habit["name"].lower() == new_name.lower() for habit in data):
-        print(f"Habit '{new_name}' already exists. Please choose a different name.")
-        input("Press Enter to continue...")
-        return
+    if any(habit["name"].lower() == name.lower() for habit in data):
+        raise ValueError(f"Habit '{name}' already exists.")
     
-    habit = Habit(new_name)
-    data.append(habit.format())
+    habit = Habit(name)
+    data.append(habit.format_json())
 
-    with open("data/habits.json", 'w') as file:
+    with open(FILENAME, 'w') as file:
         json.dump(data, file, indent=4)
     print(f"Habit '{habit.name}' added successfully.")
+    
+    return
 
 
 def remove_habit():
-    pass
+    clear_terminal()
+    print("Remove a habit")
+    
+    if not os.path.exists(FILENAME):
+        raise FileNotFoundError("/data/habits.json does not exist.")
+
+    with open(FILENAME, 'r') as file:
+        try:
+            data = json.load(file)
+        except json.JSONDecodeError:
+            raise json.JSONDecodeError("Habits data is corrupted.")
+    
+    if not data:
+        print("You don't have any habits yet, first add one!")
+        input("Press Enter to return to menu...")
+        return ValueError("No habits to remove.")
+    
+    name = input("Habit name: ")
+    if name.strip() == "":
+        raise ValueError("Habit name cannot be empty")
+
+    # Find habit by name
+    for i, habit in enumerate(data):
+        if habit["name"].lower() == name.lower():
+            del data[i]
+            with open(FILENAME, 'w') as file:
+                json.dump(data, file, indent=4)
+            print(f"Habit '{name}' removed successfully.")
+            input("Press Enter to return to menu...")
+            return
+
+    raise LookupError(f"Habit '{name}' not found.")
 
 
 def list_habits():
     clear_terminal()
     print("Your habits:\n")
 
-    filename = "data/habits.json"
-
-    if not os.path.exists(filename):
-        print("No habits found.")
+    if not os.path.exists(FILENAME):
+        print("/data/habits.json file containing habits does not exist.")
         input("Press Enter to return to menu...")
         return
 
-    with open(filename, 'r') as file:
+    with open(FILENAME, 'r') as file:
         try:
             data = json.load(file)
         except json.JSONDecodeError:
@@ -117,7 +156,7 @@ def list_habits():
             return
 
     if not data:
-        print("You don't have any habits yet.")
+        print("You don't have any habits yet, first add one!")
         input("Press Enter to return to menu...")
         return
 
@@ -126,7 +165,9 @@ def list_habits():
     headers = ["#", "Habit", "Created"]
 
     print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
-    input("\nPress Enter to return to menu...")
+    print()
+    input("Press Enter to return to menu...")
+
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')  # windows x linux
