@@ -9,8 +9,7 @@ FILENAME = "data/habits.json"
 
 class Habit:
     def __init__(self, name):
-        if name == "":
-            raise ValueError("Habit name cannot be empty")
+        self.name = name
         self.name = name
         self.created = datetime.date.today().strftime("%d/%m/%Y")
 
@@ -47,19 +46,22 @@ def main():
         print(f"Welcome back, {username}!")
         print("1. Add a habit")
         print("2. Remove a habit")
-        print("3. List habits")
-        print("4. Exit")
+        print("3. List today's habits")
+        print("4. List all habits")
+        print("5. Exit")
         
         action = input("> ")
         
         try:
             if action == "1":
-                add_habit()
+                habit = add_habit() # TODO returns
             elif action == "2":
-                remove_habit()
+                habit = remove_habit() # TODO returns
             elif action == "3":
-                list_habits()
+                habit = remove_habit() # TODO
             elif action == "4":
+                list_all_habits()
+            elif action == "5":
                 clear_terminal()
                 print(f"Goodbye, {username}")
                 break
@@ -71,11 +73,13 @@ def main():
             input("Press Enter to continue...")
 
 
-def add_habit():
+def add_habit(name=None):
     clear_terminal()
     print("Add a habit")
+    
+    if name is None:
+        name = input("Habit name: ")
 
-    name = input("Habit name: ")
     if name.strip() == "":
         raise ValueError("Habit name cannot be empty.")
 
@@ -99,11 +103,11 @@ def add_habit():
     with open(FILENAME, 'w') as file:
         json.dump(data, file, indent=4)
     print(f"Habit '{habit.name}' added successfully.")
-    
-    return
+
+    return habit
 
 
-def remove_habit():
+def remove_habit(name=None):
     clear_terminal()
     print("Remove a habit")
     
@@ -121,9 +125,11 @@ def remove_habit():
         input("Press Enter to return to menu...")
         return ValueError("No habits to remove.")
     
-    name = input("Habit name: ")
+    if name is None:
+        name = input("Habit name: ")
+
     if name.strip() == "":
-        raise ValueError("Habit name cannot be empty")
+        raise ValueError("Habit name cannot be empty.")
 
     # Find habit by name
     for i, habit in enumerate(data):
@@ -133,12 +139,12 @@ def remove_habit():
                 json.dump(data, file, indent=4)
             print(f"Habit '{name}' removed successfully.")
             input("Press Enter to return to menu...")
-            return
+            return habit
 
     raise LookupError(f"Habit '{name}' not found.")
 
 
-def list_habits():
+def list_all_habits():
     clear_terminal()
     print("Your habits:\n")
 
