@@ -9,10 +9,17 @@ FILENAME = "data/habits.json"
 TODAY = datetime.date.today().strftime("%d/%m/%Y")
 
 class Habit:
-    def __init__(self, name, created=None, completed=None):
+    def __init__(self, name, description=None, created=None, completed=None):
         self.name = name
+        self.description = description if description else ""
         self.created = created if created else TODAY
         self.completed = completed if completed else []
+        
+        today = datetime.date.today()
+        created_date = datetime.datetime.strptime(self.created, "%d/%m/%Y").date()
+        self.existence = (today - created_date).days + 1  # how long does this habit exist, in days
+
+        self.consistency = float((len(self.completed) / self.existence))  # percentual consistency
 
     def __str__(self):
         return f"Habit {self.name} was created on {self.created}."
@@ -28,14 +35,11 @@ class Habit:
     def format_json(self):
         return {
             "name": self.name,
+            "description": self.description,
             "created": self.created,
             "completed": self.completed
         }
         
-    
-        
-        
-
 
 def main():
     if len(sys.argv) != 1:
@@ -72,7 +76,7 @@ def main():
                     
                     habits = list_all_habits()
                     table = [[i + 1, habit.name, "✅" if TODAY in habit.completed else "❌"] for i, habit in enumerate(habits)]
-                    headers = ["#", "Habit", "Done Today"]
+                    headers = ["#", "Habit", "Today's status"]
                     
                     clear_terminal()
                     print("Today's habits:")                    
@@ -97,11 +101,11 @@ def main():
                         json.dump(updated, file, indent=4)
                     
             elif action == "4":
-                data = list_all_habits()
-                table = [[i + 1, habit["name"], habit["created"]] for i, habit in enumerate(data)]
-                headers = ["#", "Habit", "Created"]
+                habits = list_all_habits()
+                table = [[habit.name, habit.description, habit.existence, f"{habit.consistency:.0%}"] for habit in habits]
+                headers = ["Habit", "Description", "Existence (days)", "Consistency"]
                 clear_terminal()
-                print("Your habits:\n")
+                print("Your habits:")
                 print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
                 input("Press Enter to return to menu...")
 
@@ -122,8 +126,8 @@ def add_habit(name=None):
     clear_terminal()
     print("Add a habit")
     
-    if name is None:
-        name = input("Habit name: ")
+    name = input("Habit name: ")
+    description = input("Habit description: ")
 
     if name.strip() == "":
         raise ValueError("Habit name cannot be empty.")
@@ -142,12 +146,12 @@ def add_habit(name=None):
     if any(habit["name"].lower() == name.lower() for habit in data):
         raise ValueError(f"Habit '{name}' already exists.")
     
-    habit = Habit(name)
+    habit = Habit(name, description)
     data.append(habit.format_json())
 
     with open(FILENAME, 'w') as file:
         json.dump(data, file, indent=4)
-    print(f"Habit '{habit.name}' added successfully.")
+    print(f"Habit '{habit.name}' with description '{habit.description}' added successfully.")
 
     return habit
 
@@ -208,7 +212,8 @@ def list_all_habits():
         input("Press Enter to return to menu...")
         return
     
-    habits = [Habit(habit["name"], habit["created"], habit["completed"]) for habit in data]
+    habits = [Habit(habit["name"], habit.get("description", ""), 
+                    habit["created"], habit["completed"]) for habit in data]
     return habits
 
 
