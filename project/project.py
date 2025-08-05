@@ -6,28 +6,35 @@ import tabulate
 
 
 FILENAME = "data/habits.json"
+TODAY = datetime.date.today().strftime("%d/%m/%Y")
 
 class Habit:
-    def __init__(self, name):
+    def __init__(self, name, created=None, completed=None):
         self.name = name
-        self.name = name
-        self.created = datetime.date.today().strftime("%d/%m/%Y")
+        self.created = created if created else TODAY
+        self.completed = completed if completed else []
 
     def __str__(self):
         return f"Habit {self.name} was created on {self.created}."
     
-    def mark_done(self):
-        pass
+    def check(self):
+        if TODAY not in self.completed:
+            self.completed.append(TODAY)
     
-    def unmark_done(self):
-        pass
+    def uncheck(self):
+        if TODAY in self.completed:
+            self.completed.remove(TODAY)
 
     def format_json(self):
         return {
             "name": self.name,
             "created": self.created,
-            "completed": []
+            "completed": self.completed
         }
+        
+    
+        
+        
 
 
 def main():
@@ -55,16 +62,54 @@ def main():
         try:
             if action == "1":
                 habit = add_habit() # TODO returns
+
             elif action == "2":
                 habit = remove_habit() # TODO returns
+
             elif action == "3":
-                habit = remove_habit() # TODO
+                
+                while True:
+                    
+                    habits = list_all_habits()
+                    table = [[i + 1, habit.name, "✅" if TODAY in habit.completed else "❌"] for i, habit in enumerate(habits)]
+                    headers = ["#", "Habit", "Done Today"]
+                    
+                    clear_terminal()
+                    print("Today's habits:")                    
+                    print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
+
+                    try:
+                        id = int(input("Select habit # to toggle (0 to exit): "))
+                        if id == 0:
+                            break
+                        habit = habits[id - 1]
+                        if TODAY in habit.completed:
+                            habit.uncheck()
+                        else:
+                            habit.check()
+                    except (ValueError, IndexError):
+                        clear_terminal()
+                        print("Invalid Selection.")
+                        input("Press Enter to continue...")
+                    
+                    updated = [habit.format_json() for habit in habits]
+                    with open(FILENAME, 'w') as file:
+                        json.dump(updated, file, indent=4)
+                    
             elif action == "4":
-                list_all_habits()
+                data = list_all_habits()
+                table = [[i + 1, habit["name"], habit["created"]] for i, habit in enumerate(data)]
+                headers = ["#", "Habit", "Created"]
+                clear_terminal()
+                print("Your habits:\n")
+                print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
+                input("Press Enter to return to menu...")
+
             elif action == "5":
                 clear_terminal()
                 print(f"Goodbye, {username}")
                 break
+
             else:
                 print("Invalid choice.")
         except Exception as e:
@@ -145,9 +190,6 @@ def remove_habit(name=None):
 
 
 def list_all_habits():
-    clear_terminal()
-    print("Your habits:\n")
-
     if not os.path.exists(FILENAME):
         print("/data/habits.json file containing habits does not exist.")
         input("Press Enter to return to menu...")
@@ -165,14 +207,9 @@ def list_all_habits():
         print("You don't have any habits yet, first add one!")
         input("Press Enter to return to menu...")
         return
-
-    # Format table
-    table = [[i + 1, habit["name"], habit["created"]] for i, habit in enumerate(data)]
-    headers = ["#", "Habit", "Created"]
-
-    print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
-    print()
-    input("Press Enter to return to menu...")
+    
+    habits = [Habit(habit["name"], habit["created"], habit["completed"]) for habit in data]
+    return habits
 
 
 def clear_terminal():
