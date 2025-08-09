@@ -32,19 +32,5 @@
         "description": "",
         "created": "05/08/2025",
         "completed": []
-    },
-    {
-        "name": "otravovat maus",
-        "description": "a hodn\u011b",
-        "created": "05/08/2025",
-        "completed": []
-    },
-    {
-        "name": "miss mys",
-        "description": "missingmys",
-        "created": "05/08/2025",
-        "completed": [
-            "05/08/2025"
-        ]
     }
 ]

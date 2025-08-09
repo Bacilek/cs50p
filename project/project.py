@@ -75,7 +75,10 @@ def main():
                 while True:
                     
                     habits = list_all_habits()
-                    table = [[i + 1, habit.name, "✅" if TODAY in habit.completed else "❌"] for i, habit in enumerate(habits)]
+                    table = [
+                        [i + 1, habit.name, "✅" if TODAY in habit.completed else "❌"]
+                        for i, habit in enumerate(habits)
+                        ]
                     headers = ["#", "Habit", "Today's status"]
                     
                     clear_terminal()
@@ -102,7 +105,10 @@ def main():
                     
             elif action == "4":
                 habits = list_all_habits()
-                table = [[habit.name, habit.description, habit.existence, f"{habit.consistency:.0%}"] for habit in habits]
+                table = [
+                    [habit.name, habit.description, habit.existence, f"{habit.consistency:.0%}"]
+                    for habit in habits
+                    ]
                 headers = ["Habit", "Description", "Existence (days)", "Consistency"]
                 clear_terminal()
                 print("Your habits:")
@@ -212,8 +218,12 @@ def list_all_habits():
         input("Press Enter to return to menu...")
         return
     
-    habits = [Habit(habit["name"], habit.get("description", ""), 
-                    habit["created"], habit["completed"]) for habit in data]
+    habits = [Habit(
+        habit["name"], 
+        habit.get("description", ""), 
+        habit["created"], 
+        habit["completed"]
+    ) for habit in data]
     return habits
 
 
