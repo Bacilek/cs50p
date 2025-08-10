@@ -1,4 +1,3 @@
-# YOUR PROJECT TITLE
-    #### Video Demo:  <URL HERE>
-    #### Description:
-    TODO
+# Habiter (?)
+    #### Video Demo:  <tbd>
+    #### Description: Habit Tracker CLI, final project of Harvard cs50p course

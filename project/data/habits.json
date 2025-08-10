@@ -1,13 +1,15 @@
 [
     {
-        "name": "Cvicit",
-        "description": "",
+        "name": "Water",
+        "description": "Drink at least 3 litres of water.",
         "created": "05/08/2025",
-        "completed": []
+        "completed": [
+            "10/08/2025"
+        ]
     },
     {
-        "name": "Voda",
-        "description": "",
+        "name": "Exercise",
+        "description": "Go to gym/rest day.",
         "created": "05/08/2025",
         "completed": [
             "05/08/2025"
@@ -15,22 +17,27 @@
     },
     {
         "name": "Reading",
-        "description": "",
+        "description": "10 pages minimum.",
         "created": "05/08/2025",
         "completed": [
-            "05/08/2025"
+            "05/08/2025",
+            "10/08/2025"
         ]
     },
     {
-        "name": "Mrk",
-        "description": "",
+        "name": "Sleep",
+        "description": "Get at least 7 hours of sleep.",
         "created": "05/08/2025",
-        "completed": []
+        "completed": [
+            "10/08/2025"
+        ]
     },
     {
-        "name": "Gym",
-        "description": "",
+        "name": "Macros",
+        "description": "At least 150g of protein.",
         "created": "05/08/2025",
-        "completed": []
+        "completed": [
+            "10/08/2025"
+        ]
     }
 ]
