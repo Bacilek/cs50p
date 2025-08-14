@@ -6,42 +6,10 @@ import tabulate
 import csv
 import re
 from pwinput import pwinput  # type: ignore
+from habit import Habit
 
 TODAY = datetime.date.today().strftime("%d/%m/%Y")
 USERS = "data/users.csv"
-
-class Habit:
-    def __init__(self, name, description=None, created=None, completed=None):
-        self.name = name
-        self.description = description if description else ""
-        self.created = created if created else TODAY
-        self.completed = completed if completed else []
-        
-        today = datetime.date.today()
-        created_date = datetime.datetime.strptime(self.created, "%d/%m/%Y").date()
-        self.existence = (today - created_date).days + 1  # habit existence [days]
-
-        self.consistency = float((len(self.completed) / self.existence))  # %
-
-    def __str__(self):
-        return f"Habit {self.name} was created on {self.created}."
-    
-    def check(self):
-        if TODAY not in self.completed:
-            self.completed.append(TODAY)
-    
-    def uncheck(self):
-        if TODAY in self.completed:
-            self.completed.remove(TODAY)
-
-    def format_json(self):
-        return {
-            "name": self.name,
-            "description": self.description,
-            "created": self.created,
-            "completed": self.completed
-        }
-        
 
 def main():
     if len(sys.argv) != 1:
@@ -66,9 +34,11 @@ def main():
                         [i + 1, habit.name, "✅" if TODAY in habit.completed else "❌"]
                         for i, habit in enumerate(habits)
                         ]
-                    headers = ["#", "Habit", "Today's status"]
+                    headers = ["#", "Name", "Today's status"]
                     
                     clear_terminal()
+                    if habits == []:
+                        break
                     print("Today's habits:")                    
                     print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
 
@@ -97,9 +67,8 @@ def main():
                     [habit.name, habit.description, habit.existence, f"{habit.consistency:.0%}"]
                     for habit in habits
                     ]
-                headers = ["Habit", "Description", "Existence (days)", "Consistency"]
+                headers = ["Name", "Description", "Existence (days)", "Consistency"]
                 clear_terminal()
-                print(habits)
                 if habits == []:
                     continue
                 print("Your habits:")
@@ -195,14 +164,21 @@ def add_habit(filename, name=None):
     clear_terminal()
     print("Add a habit")
     
-    name = input("Habit name: ")
+    name = input("Habit name: ").strip()
     description = input("Habit description: ")
 
-    if name.strip() == "":
+    # Non-empty habit name
+    if name == "":
         raise ValueError("Habit name cannot be empty.")
+    
+    # 1+ letter in habit name
+    pattern = r"(?=.*[A-Za-z]).*"
+    if not re.fullmatch(pattern, name):
+        raise ValueError("Habit name must contain at least one letter.")
 
     os.makedirs("data", exist_ok=True)  # create data directory if it doesn't exist
     
+    # Check if file exists, if not create it
     if os.path.exists(filename):
         with open(filename, 'r') as file:
             try:
@@ -214,23 +190,25 @@ def add_habit(filename, name=None):
         with open(filename, "w") as file:
             json.dump(data, file, indent=4)
 
+    # Check for duplicates
     if any(habit["name"].lower() == name.lower() for habit in data):
         raise ValueError(f"Habit '{name}' already exists.")
     
+    # Create new habit
     habit = Habit(name, description)
     data.append(habit.format_json())
-
     with open(filename, 'w') as file:
         json.dump(data, file, indent=4)
+    
     print(f"Habit '{habit.name}' with description '{habit.description}' added successfully.")
+    input("Press Enter to return to menu...")
 
     return habit
 
 
 def remove_habit(filename, name=None):
     clear_terminal()
-    print("Remove a habit")
-    
+
     if not os.path.exists(filename):
         raise FileNotFoundError("/data/habits.json does not exist.")
 
@@ -245,33 +223,61 @@ def remove_habit(filename, name=None):
         input("Press Enter to return to menu...")
         return ValueError("No habits to remove.")
     
+    # Display habits
+    habits = get_habits(filename)
+    table = [
+        [i + 1, habit.name]
+        for i, habit in enumerate(habits)
+        ]
+    headers = ["#", "Name"]
+    print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
+    
+    # Manual
     if name is None:
-        name = input("Habit name: ")
+        name = input("Select habit # or name to remove (0 to exit): ")
 
+    # No name provided
     if name.strip() == "":
-        raise ValueError("Habit name cannot be empty.")
+        raise ValueError("Invalid habit name.")
 
-    # Find habit by name
-    for i, habit in enumerate(data):
-        if habit["name"].lower() == name.lower():
-            del data[i]
-            with open(filename, 'w') as file:
-                json.dump(data, file, indent=4)
-            print(f"Habit '{name}' removed successfully.")
-            input("Press Enter to return to menu...")
-            return habit
-
+    pattern = r"(?=.*[A-Za-z]).*"
+    if re.fullmatch(pattern, name):
+        # Find habit by name
+        for i, habit in enumerate(data):
+            if habit["name"].lower() == name.lower():
+                del data[i]
+                with open(filename, 'w') as file:
+                    json.dump(data, file, indent=4)
+                print(f"Habit '{name}' removed successfully.")
+                input("Press Enter to return to menu...")
+                return habit
+    else:
+        # Find habit by index
+        try:
+            index = int(name) - 1
+            if 0 <= index < len(data):
+                removed_habit = data.pop(index)
+                with open(filename, 'w') as file:
+                    json.dump(data, file, indent=4)
+                print(f"Habit '{removed_habit['name']}' removed successfully.")
+                input("Press Enter to return to menu...")
+                return Habit(**removed_habit)
+        except (ValueError, IndexError):
+            pass
+    
     raise LookupError(f"Habit '{name}' not found.")
 
 
 def get_habits(filename):
 
+    # File exists
     if not os.path.exists(filename):
         clear_terminal()
         print("/data/habits.json file containing habits does not exist.")
         input("Press Enter to return to menu...")
         return []
     
+    # Load file
     with open(filename, 'r') as file:
         try:
             data = json.load(file)
@@ -279,14 +285,16 @@ def get_habits(filename):
             clear_terminal()
             print("Habits data is corrupted.")
             input("Press Enter to return to menu...")
-            return []
+            return []  # None? | ""?
 
+    # No habits
     if not data:
         clear_terminal()
         print("You don't have any habits yet, first add one!")
         input("Press Enter to return to menu...")
         return []
     
+    # json to list of Habit objects
     habits = [
         Habit(
             habit["name"], 
@@ -294,6 +302,7 @@ def get_habits(filename):
             habit["created"], 
             habit["completed"]
     ) for habit in data]
+
     return habits
 
 
