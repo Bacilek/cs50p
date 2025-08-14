@@ -9,7 +9,8 @@ from pwinput import pwinput  # type: ignore
 from habit import Habit
 
 TODAY = datetime.date.today().strftime("%d/%m/%Y")
-USERS = "data/users.csv"
+USERS_FILE = "data/users.csv"
+
 
 def main():
     if len(sys.argv) != 1:
@@ -89,62 +90,36 @@ def main():
 
 
 def login():
+    users = load_users()
+
     while True:
         clear_terminal()
         print("Welcome to Habit Tracker!")
-        print("Please login to continue.")
-
-        username = input("Username: ")
-        if not username.strip():
-            clear_terminal()
-            input("Invalid username, please try again")
+        username = input("Username: ").strip()
+        if not username:
+            input("Invalid username. Press Enter to try again...")
             continue
-        
+
         password = pwinput("Password: ")
-    
-        if len(password) < 5:
-            clear_terminal()
-            input("Password must have length of at least 5, please try again")
-            continue
-        
-        # lowercase, uppercase, and number in 5+ non-whitespace characters
-        pattern = r"(?=.*[a-z])(?=.*[A-Z])(?=.*\d)\S{5,}"
-        if not re.fullmatch(pattern, password):
-            clear_terminal()
-            input("Password must include at least one uppercase letter, one lowercase letter and a number, please try again.")
-            continue
-        
-        file_exists = os.path.exists(USERS)
-        
-        if not file_exists:
-            with open(USERS, 'w') as file:
-                writer = csv.DictWriter(file, fieldnames=["username", "password"])
-                writer.writeheader()
 
-        with open(USERS, 'r') as file:
-            reader = csv.DictReader(file)
-            users = {row["username"]: row["password"] for row in reader}
-            
-        if username in users.keys():
-            if users.get(username) != password:
-                clear_terminal()
-                input("Wrong password, please try again...")
+        if username in users:
+            if users[username] != password:
+                input("Wrong password. Press Enter to try again...")
                 continue
         else:
-            with open(USERS, 'a') as file:
-                writer = csv.DictWriter(file, fieldnames=["username", "password"])
-                writer.writerow({"username": username, "password": password})
-        
-        if username:
-            filename = f"data/{username}.json"
-            os.makedirs("data", exist_ok=True)
-            
-            if not os.path.exists(filename):
-                with open(filename, 'w') as file:
-                    json.dump([], file, indent=4)
-            break
+            if not validate_password(password):
+                input(
+                    "Password must be 5+ chars, include uppercase, lowercase, number, no spaces. Press Enter..."
+                )
+                continue
+            save_user(username, password)
 
-    return username, filename
+        # Ensure user JSON exists
+        user_file = f"data/{username}.json"
+        if not os.path.exists(user_file):
+            save_json(user_file, [])
+
+        return username, user_file
 
 
 def display_options(username):
@@ -209,15 +184,18 @@ def add_habit(filename, name=None):
 def remove_habit(filename, name=None):
     clear_terminal()
 
+    # File exists
     if not os.path.exists(filename):
         raise FileNotFoundError("/data/habits.json does not exist.")
 
+    # Load file
     with open(filename, 'r') as file:
         try:
             data = json.load(file)
         except json.JSONDecodeError:
             raise json.JSONDecodeError("Habits data is corrupted.")
     
+    # No habits
     if not data:
         print("You don't have any habits yet, first add one!")
         input("Press Enter to return to menu...")
@@ -240,9 +218,10 @@ def remove_habit(filename, name=None):
     if name.strip() == "":
         raise ValueError("Invalid habit name.")
 
+    # Find Habit
     pattern = r"(?=.*[A-Za-z]).*"
+    # By name
     if re.fullmatch(pattern, name):
-        # Find habit by name
         for i, habit in enumerate(data):
             if habit["name"].lower() == name.lower():
                 del data[i]
@@ -251,8 +230,8 @@ def remove_habit(filename, name=None):
                 print(f"Habit '{name}' removed successfully.")
                 input("Press Enter to return to menu...")
                 return habit
+    # By index
     else:
-        # Find habit by index
         try:
             index = int(name) - 1
             if 0 <= index < len(data):
@@ -304,6 +283,54 @@ def get_habits(filename):
     ) for habit in data]
 
     return habits
+
+
+def load_json(path, default=None):
+    """Load JSON data from a file."""
+    if not os.path.exists(path):
+        return default
+    with open(path, 'r') as file:
+        try:
+            return json.load(file)
+        except json.JSONDecodeError:
+            return default
+
+
+def save_json(path, data):
+    """Save JSON data to a file."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+
+def load_users():
+    """Load users from the USERS_FILE."""
+    if not os.path.exists(USERS_FILE):
+        os.makedirs(os.path.dirname(USERS_FILE), exist_ok=True)
+        with open(USERS_FILE, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["username", "password"])
+            writer.writeheader()
+        return {}
+    with open(USERS_FILE, "r") as f:
+        reader = csv.DictReader(f)
+        return {row["username"]: row["password"] for row in reader}
+
+
+
+def save_user(username, password):
+    """Save a new user to the USERS_FILE."""
+    users = load_users()
+    if username not in users:
+        with open(USERS_FILE, "a", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["username", "password"])
+            writer.writerow({"username": username, "password": password})
+
+
+def validate_password(password):
+    """Validate: 5+ chars, 1 uppercase, 1 lowercase, 1 number, no whitespace"""
+    pattern = r"(?=.*[a-z])(?=.*[A-Z])(?=.*\d)\S{5,}"
+    return bool(re.fullmatch(pattern, password))
+
 
 
 def clear_terminal():

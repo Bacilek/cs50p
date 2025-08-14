@@ -1,8 +1,10 @@
 [
     {
-        "name": "Read",
-        "description": "a book",
+        "name": "Steps",
+        "description": "10k",
         "created": "14/08/2025",
-        "completed": []
+        "completed": [
+            "14/08/2025"
+        ]
     }
 ]
