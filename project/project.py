@@ -3,8 +3,10 @@ import sys
 import datetime
 import os
 import tabulate
+import csv
 
 TODAY = datetime.date.today().strftime("%d/%m/%Y")
+USERS = "data/users.csv"
 
 class Habit:
     def __init__(self, name, description=None, created=None, completed=None):
@@ -17,7 +19,7 @@ class Habit:
         created_date = datetime.datetime.strptime(self.created, "%d/%m/%Y").date()
         self.existence = (today - created_date).days + 1  # habit existence [days]
 
-        self.consistency = float((len(self.completed) / self.existence))  # percentual consistency
+        self.consistency = float((len(self.completed) / self.existence))  # %
 
     def __str__(self):
         return f"Habit {self.name} was created on {self.created}."
@@ -43,21 +45,7 @@ def main():
     if len(sys.argv) != 1:
         sys.exit("Usage: python project.py")
     
-    while True:
-        clear_terminal()
-        print("Welcome to Habit Tracker!")
-        
-        global username
-        username = input("Enter your username: ").strip()
-        
-        if username:
-            filename = f"data/{username}.json"
-            os.makedirs("data", exist_ok=True)
-            
-            if not os.path.exists(filename):
-                with open(filename, 'w') as file:
-                    json.dump([], file, indent=4)
-            break
+    username, filename = login()
     
     while True:
         clear_terminal()
@@ -79,7 +67,7 @@ def main():
 
             elif action == "3":
                 while True:
-                    habits = list_all_habits(filename)
+                    habits = get_habits(filename)
                     table = [
                         [i + 1, habit.name, "✅" if TODAY in habit.completed else "❌"]
                         for i, habit in enumerate(habits)
@@ -109,7 +97,7 @@ def main():
                         json.dump(updated, file, indent=4)
                     
             elif action == "4":
-                habits = list_all_habits(filename)
+                habits = get_habits(filename)
                 table = [
                     [habit.name, habit.description, habit.existence, f"{habit.consistency:.0%}"]
                     for habit in habits
@@ -131,6 +119,54 @@ def main():
             clear_terminal()
             print(f"Error: {e}")
             input("Press Enter to continue...")
+
+
+def login():
+    while True:
+        clear_terminal()
+        print("Welcome to Habit Tracker!")
+        print("Please login to continue.")
+
+        username = input("Username: ")
+        if not username.strip():
+            input("Invalid username, please try again")
+            continue
+
+        password = input("Password: ")
+        if len(password) < 5:
+            input("Short password, please try again")
+            continue
+
+        file_exists = os.path.exists(USERS)
+        
+        if not file_exists:
+            with open(USERS, 'w') as file:
+                writer = csv.DictWriter(file, fieldnames=["username", "password"])
+                writer.writeheader()
+
+        with open(USERS, 'r') as file:
+            reader = csv.DictReader(file)
+            users = {row["username"]: row["password"] for row in reader}
+            
+        if username in users.keys():
+            if users.get(username) != password:
+                input("Wrong password, please try again...")
+                continue
+        else:
+            with open(USERS, 'a') as file:
+                writer = csv.DictWriter(file, fieldnames=["username", "password"])
+                writer.writerow({"username": username, "password": password})
+        
+        if username:
+            filename = f"data/{username}.json"
+            os.makedirs("data", exist_ok=True)
+            
+            if not os.path.exists(filename):
+                with open(filename, 'w') as file:
+                    json.dump([], file, indent=4)
+            break
+
+    return username, filename
 
 
 def add_habit(filename, name=None):
@@ -207,12 +243,15 @@ def remove_habit(filename, name=None):
     raise LookupError(f"Habit '{name}' not found.")
 
 
-def list_all_habits(filename):
+def get_habits(filename):
+
+    """ NOT POSSIBLE ANYMORE?
     if not os.path.exists(filename):
         print("/data/habits.json file containing habits does not exist.")
         input("Press Enter to return to menu...")
         return
-
+    """
+    
     with open(filename, 'r') as file:
         try:
             data = json.load(file)
@@ -226,11 +265,12 @@ def list_all_habits(filename):
         input("Press Enter to return to menu...")
         return
     
-    habits = [Habit(
-        habit["name"], 
-        habit.get("description", ""), 
-        habit["created"], 
-        habit["completed"]
+    habits = [
+        Habit(
+            habit["name"], 
+            habit.get("description", ""), 
+            habit["created"], 
+            habit["completed"]
     ) for habit in data]
     return habits
 
