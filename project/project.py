@@ -13,83 +13,33 @@ USERS_FILE = "data/users.csv"
 
 
 def main():
+    """Main function to run the Habit Tracker application."""
     if len(sys.argv) != 1:
         sys.exit("Usage: python project.py")
-    
+
     username, filename = login()
-    
+
     while True:
         option = display_options(username)
-        
-        try:
-            if option == "1":
-                habit = add_habit(filename)
 
-            elif option == "2":
-                habit = remove_habit(filename)
-
-            elif option == "3":
-                while True:
-                    habits = get_habits(filename)
-                    table = [
-                        [i + 1, habit.name, "✅" if TODAY in habit.completed else "❌"]
-                        for i, habit in enumerate(habits)
-                        ]
-                    headers = ["#", "Name", "Today's status"]
-                    
-                    clear_terminal()
-                    if habits == []:
-                        break
-                    print("Today's habits:")                    
-                    print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
-
-                    try:
-                        id = int(input("Select habit # to toggle (0 to exit): "))
-                        if id == 0:
-                            break
-                        habit = habits[id - 1]
-                        if TODAY in habit.completed:
-                            habit.uncheck()
-                        else:
-                            habit.check()
-                    except (ValueError, IndexError):
-                        clear_terminal()
-                        print("Invalid Selection.")
-                        input("Press Enter to continue...")
-                    
-                    updated = [habit.format_json() for habit in habits]
-                    with open(filename, 'w') as file:
-                        json.dump(updated, file, indent=4)
-                    
-            elif option == "4":
-                habits = get_habits(filename)
-                
-                table = [
-                    [habit.name, habit.description, habit.existence, f"{habit.consistency:.0%}"]
-                    for habit in habits
-                    ]
-                headers = ["Name", "Description", "Existence (days)", "Consistency"]
-                clear_terminal()
-                if habits == []:
-                    continue
-                print("Your habits:")
-                print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
-                input("Press Enter to return to menu...")
-
-            elif option == "5":
-                clear_terminal()
-                print(f"Goodbye, {username}")
-                break
-
-            else:
-                print("Invalid choice.")
-        except Exception as e:
+        if option == "1":
+            add_habit_ui(filename)
+        elif option == "2":
+            remove_habit_ui(filename)
+        elif option == "3":
+            list_today_ui(filename)
+        elif option == "4":
+            list_all_ui(filename)
+        elif option == "5":
             clear_terminal()
-            print(f"Error: {e}")
-            input("Press Enter to continue...")
+            print(f"Goodbye, {username}")
+            break
+        else:
+            input("Invalid choice. Press Enter to continue...")
 
 
 def login():
+    """Handle user login or registration."""
     users = load_users()
 
     while True:
@@ -120,170 +70,6 @@ def login():
             save_json(user_file, [])
 
         return username, user_file
-
-
-def display_options(username):
-    clear_terminal()
-    print(f"Welcome back, {username}!")
-    print("1. Add a habit")
-    print("2. Remove a habit")
-    print("3. List today's habits")
-    print("4. List all habits")
-    print("5. Exit")
-    
-    return input("> ")
-
-
-def add_habit(filename, name=None):
-    
-    clear_terminal()
-    print("Add a habit")
-    
-    name = input("Habit name: ").strip()
-    description = input("Habit description: ")
-
-    # Non-empty habit name
-    if name == "":
-        raise ValueError("Habit name cannot be empty.")
-    
-    # 1+ letter in habit name
-    pattern = r"(?=.*[A-Za-z]).*"
-    if not re.fullmatch(pattern, name):
-        raise ValueError("Habit name must contain at least one letter.")
-
-    os.makedirs("data", exist_ok=True)  # create data directory if it doesn't exist
-    
-    # Check if file exists, if not create it
-    if os.path.exists(filename):
-        with open(filename, 'r') as file:
-            try:
-                data = json.load(file)
-            except json.JSONDecodeError:
-                data = []
-    else:
-        data = []
-        with open(filename, "w") as file:
-            json.dump(data, file, indent=4)
-
-    # Check for duplicates
-    if any(habit["name"].lower() == name.lower() for habit in data):
-        raise ValueError(f"Habit '{name}' already exists.")
-    
-    # Create new habit
-    habit = Habit(name, description)
-    data.append(habit.format_json())
-    with open(filename, 'w') as file:
-        json.dump(data, file, indent=4)
-    
-    print(f"Habit '{habit.name}' with description '{habit.description}' added successfully.")
-    input("Press Enter to return to menu...")
-
-    return habit
-
-
-def remove_habit(filename, name=None):
-    clear_terminal()
-
-    # File exists
-    if not os.path.exists(filename):
-        raise FileNotFoundError("/data/habits.json does not exist.")
-
-    # Load file
-    with open(filename, 'r') as file:
-        try:
-            data = json.load(file)
-        except json.JSONDecodeError:
-            raise json.JSONDecodeError("Habits data is corrupted.")
-    
-    # No habits
-    if not data:
-        print("You don't have any habits yet, first add one!")
-        input("Press Enter to return to menu...")
-        return ValueError("No habits to remove.")
-    
-    # Display habits
-    habits = get_habits(filename)
-    table = [
-        [i + 1, habit.name]
-        for i, habit in enumerate(habits)
-        ]
-    headers = ["#", "Name"]
-    print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
-    
-    # Manual
-    if name is None:
-        name = input("Select habit # or name to remove (0 to exit): ")
-
-    # No name provided
-    if name.strip() == "":
-        raise ValueError("Invalid habit name.")
-
-    # Find Habit
-    pattern = r"(?=.*[A-Za-z]).*"
-    # By name
-    if re.fullmatch(pattern, name):
-        for i, habit in enumerate(data):
-            if habit["name"].lower() == name.lower():
-                del data[i]
-                with open(filename, 'w') as file:
-                    json.dump(data, file, indent=4)
-                print(f"Habit '{name}' removed successfully.")
-                input("Press Enter to return to menu...")
-                return habit
-    # By index
-    else:
-        try:
-            index = int(name) - 1
-            if 0 <= index < len(data):
-                removed_habit = data.pop(index)
-                with open(filename, 'w') as file:
-                    json.dump(data, file, indent=4)
-                print(f"Habit '{removed_habit['name']}' removed successfully.")
-                input("Press Enter to return to menu...")
-                return Habit(**removed_habit)
-        except (ValueError, IndexError):
-            pass
-    
-    raise LookupError(f"Habit '{name}' not found.")
-
-
-def get_habits(filename):
-
-    # File exists
-    if not os.path.exists(filename):
-        clear_terminal()
-        print("/data/habits.json file containing habits does not exist.")
-        input("Press Enter to return to menu...")
-        return []
-    
-    # Load file
-    with open(filename, 'r') as file:
-        try:
-            data = json.load(file)
-        except json.JSONDecodeError:
-            clear_terminal()
-            print("Habits data is corrupted.")
-            input("Press Enter to return to menu...")
-            return []  # None? | ""?
-
-    # No habits
-    if not data:
-        clear_terminal()
-        print("You don't have any habits yet, first add one!")
-        input("Press Enter to return to menu...")
-        return []
-    
-    # json to list of Habit objects
-    habits = [
-        Habit(
-            habit["name"], 
-            habit.get("description", ""), 
-            habit["created"], 
-            habit["completed"]
-    ) for habit in data]
-
-    return habits
-
 
 def load_json(path, default=None):
     """Load JSON data from a file."""
@@ -334,7 +120,141 @@ def validate_password(password):
 
 
 def clear_terminal():
+    """Clear the terminal screen."""
     os.system('cls' if os.name == 'nt' else 'clear')  # windows x linux
+
+
+
+def get_habits(filename):
+    """Load habits from a JSON file and return a list of Habit objects."""
+    data = load_json(filename)
+    return [Habit(h["name"], h.get("description", ""), h["created"], h.get("completed", [])) for h in data]
+
+def add_habit_data(filename, name, description) -> Habit:
+    data = load_json(filename)
+    if any(h["name"].lower() == name.lower() for h in data):
+        raise ValueError(f"Habit '{name}' already exists.")
+    habit = Habit(name, description)
+    data.append(habit.format_json())
+    save_json(filename, data)
+    return habit
+
+
+def remove_habit_data(filename, identifier):
+    """Remove a habit by name or index from the JSON file."""
+    data = load_json(filename)
+    if not data:
+        raise ValueError("No habits to remove.")
+
+    # by name
+    for i, h in enumerate(data):
+        if h["name"].lower() == str(identifier).lower():
+            removed = data.pop(i)
+            save_json(filename, data)
+            return Habit(**removed)
+
+    # by index
+    try:
+        idx = int(identifier) - 1
+        if 0 <= idx < len(data):
+            removed = data.pop(idx)
+            save_json(filename, data)
+            return Habit(**removed)
+    except ValueError:
+        pass
+
+    raise LookupError(f"Habit '{identifier}' not found.")
+
+def display_options(username):
+    """Display the main menu options and return the user's choice."""
+    clear_terminal()
+    print(f"Welcome back, {username}!")
+    print("1. Add a habit")
+    print("2. Remove a habit")
+    print("3. List today's habits")
+    print("4. List all habits")
+    print("5. Exit")
+    return input("> ").strip()
+
+
+def add_habit_ui(filename):
+    """UI for adding a new habit."""
+    clear_terminal()
+    print("Add a habit")
+    name = input("Habit name: ").strip()
+    description = input("Habit description: ")
+
+    if not name or not re.search(r"[A-Za-z]", name):
+        input("Habit name must contain at least one letter. Press Enter...")
+        return
+
+    try:
+        habit = add_habit_data(filename, name, description)
+        print(f"Habit '{habit.name}' added successfully!")
+    except ValueError as e:
+        print(e)
+    input("Press Enter to return to menu...")
+
+
+def remove_habit_ui(filename):
+    """UI for removing a habit."""
+    clear_terminal()
+    habits = get_habits(filename)
+    if not habits:
+        input("No habits to remove. Press Enter...")
+        return
+
+    table = [[i + 1, h.name] for i, h in enumerate(habits)]
+    print(tabulate.tabulate(table, headers=["#", "Name"], tablefmt="fancy_grid"))
+    identifier = input("Select habit # or name to remove (0 to exit): ").strip()
+    if identifier == "0":
+        return
+
+    try:
+        removed = remove_habit_data(filename, identifier)
+        print(f"Habit '{removed.name}' removed successfully!")
+    except (ValueError, LookupError) as e:
+        print(e)
+    input("Press Enter to return to menu...")
+
+
+def list_today_ui(filename):
+    """UI for listing today's habits and toggling their status."""
+    clear_terminal()
+    while True:
+        habits = get_habits(filename)
+        if not habits:
+            break
+
+        table = [[i + 1, h.name, "✅" if TODAY in h.completed else "❌"] for i, h in enumerate(habits)]
+        print(tabulate.tabulate(table, headers=["#", "Name", "Today's status"], tablefmt="fancy_grid"))
+
+        try:
+            selection = int(input("Select habit # to toggle (0 to exit): "))
+            if selection == 0:
+                break
+            habit = habits[selection - 1]
+            habit.check() if TODAY not in habit.completed else habit.uncheck()
+        except (ValueError, IndexError):
+            print("Invalid selection.")
+            input("Press Enter to continue...")
+
+        save_json(filename, [h.format_json() for h in habits])
+        clear_terminal()
+
+
+
+def list_all_ui(filename):
+    """UI for listing all habits."""
+    clear_terminal()
+    habits = get_habits(filename)
+    if not habits:
+        input("No habits yet. Press Enter to return...")
+        return
+    table = [[h.name, h.description, h.existence, f"{h.consistency:.0%}"] for h in habits]
+    print(tabulate.tabulate(table, headers=["Name", "Description", "Existence (days)", "Consistency"], tablefmt="fancy_grid"))
+    input("Press Enter to return to menu...")
+
 
 
 if __name__ == "__main__":
