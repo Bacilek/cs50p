@@ -50,24 +50,16 @@ def main():
     username, filename = login()
     
     while True:
-        clear_terminal()
-        print(f"Welcome back, {username}!")
-        print("1. Add a habit")
-        print("2. Remove a habit")
-        print("3. List today's habits")
-        print("4. List all habits")
-        print("5. Exit")
-        
-        action = input("> ")
+        option = display_options(username)
         
         try:
-            if action == "1":
+            if option == "1":
                 habit = add_habit(filename)
 
-            elif action == "2":
+            elif option == "2":
                 habit = remove_habit(filename)
 
-            elif action == "3":
+            elif option == "3":
                 while True:
                     habits = get_habits(filename)
                     table = [
@@ -98,19 +90,23 @@ def main():
                     with open(filename, 'w') as file:
                         json.dump(updated, file, indent=4)
                     
-            elif action == "4":
+            elif option == "4":
                 habits = get_habits(filename)
+                
                 table = [
                     [habit.name, habit.description, habit.existence, f"{habit.consistency:.0%}"]
                     for habit in habits
                     ]
                 headers = ["Habit", "Description", "Existence (days)", "Consistency"]
                 clear_terminal()
+                print(habits)
+                if habits == []:
+                    continue
                 print("Your habits:")
                 print(tabulate.tabulate(table, headers=headers, tablefmt="fancy_grid"))
                 input("Press Enter to return to menu...")
 
-            elif action == "5":
+            elif option == "5":
                 clear_terminal()
                 print(f"Goodbye, {username}")
                 break
@@ -131,18 +127,21 @@ def login():
 
         username = input("Username: ")
         if not username.strip():
+            clear_terminal()
             input("Invalid username, please try again")
             continue
         
         password = pwinput("Password: ")
     
         if len(password) < 5:
-            input("Short password, please try again")
+            clear_terminal()
+            input("Password must have length of at least 5, please try again")
             continue
         
-        # there's lowercase, uppercase, number
-        pattern = r"(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{5,}"
+        # lowercase, uppercase, and number in 5+ non-whitespace characters
+        pattern = r"(?=.*[a-z])(?=.*[A-Z])(?=.*\d)\S{5,}"
         if not re.fullmatch(pattern, password):
+            clear_terminal()
             input("Password must include at least one uppercase letter, one lowercase letter and a number, please try again.")
             continue
         
@@ -159,6 +158,7 @@ def login():
             
         if username in users.keys():
             if users.get(username) != password:
+                clear_terminal()
                 input("Wrong password, please try again...")
                 continue
         else:
@@ -176,6 +176,18 @@ def login():
             break
 
     return username, filename
+
+
+def display_options(username):
+    clear_terminal()
+    print(f"Welcome back, {username}!")
+    print("1. Add a habit")
+    print("2. Remove a habit")
+    print("3. List today's habits")
+    print("4. List all habits")
+    print("5. Exit")
+    
+    return input("> ")
 
 
 def add_habit(filename, name=None):
@@ -254,25 +266,26 @@ def remove_habit(filename, name=None):
 
 def get_habits(filename):
 
-    """ NOT POSSIBLE ANYMORE?
     if not os.path.exists(filename):
+        clear_terminal()
         print("/data/habits.json file containing habits does not exist.")
         input("Press Enter to return to menu...")
-        return
-    """
+        return []
     
     with open(filename, 'r') as file:
         try:
             data = json.load(file)
         except json.JSONDecodeError:
+            clear_terminal()
             print("Habits data is corrupted.")
             input("Press Enter to return to menu...")
-            return
+            return []
 
     if not data:
+        clear_terminal()
         print("You don't have any habits yet, first add one!")
         input("Press Enter to return to menu...")
-        return
+        return []
     
     habits = [
         Habit(
