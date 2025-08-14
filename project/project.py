@@ -4,6 +4,7 @@ import datetime
 import os
 import tabulate
 import csv
+from pwinput import pwinput
 
 TODAY = datetime.date.today().strftime("%d/%m/%Y")
 USERS = "data/users.csv"
@@ -132,7 +133,7 @@ def login():
             input("Invalid username, please try again")
             continue
 
-        password = input("Password: ")
+        password = pwinput("Password: ")
         if len(password) < 5:
             input("Short password, please try again")
             continue
