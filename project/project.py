@@ -4,7 +4,8 @@ import datetime
 import os
 import tabulate
 import csv
-from pwinput import pwinput
+import re
+from pwinput import pwinput  # type: ignore
 
 TODAY = datetime.date.today().strftime("%d/%m/%Y")
 USERS = "data/users.csv"
@@ -132,12 +133,19 @@ def login():
         if not username.strip():
             input("Invalid username, please try again")
             continue
-
+        
         password = pwinput("Password: ")
+    
         if len(password) < 5:
             input("Short password, please try again")
             continue
-
+        
+        # there's lowercase, uppercase, number
+        pattern = r"(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{5,}"
+        if not re.fullmatch(pattern, password):
+            input("Password must include at least one uppercase letter, one lowercase letter and a number, please try again.")
+            continue
+        
         file_exists = os.path.exists(USERS)
         
         if not file_exists:
