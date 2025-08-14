@@ -4,8 +4,6 @@ import datetime
 import os
 import tabulate
 
-
-FILENAME = "data/habits.json"
 TODAY = datetime.date.today().strftime("%d/%m/%Y")
 
 class Habit:
@@ -17,7 +15,7 @@ class Habit:
         
         today = datetime.date.today()
         created_date = datetime.datetime.strptime(self.created, "%d/%m/%Y").date()
-        self.existence = (today - created_date).days + 1  # how long does this habit exist, in days
+        self.existence = (today - created_date).days + 1  # habit existence [days]
 
         self.consistency = float((len(self.completed) / self.existence))  # percentual consistency
 
@@ -47,10 +45,19 @@ def main():
     
     while True:
         clear_terminal()
-        username = input("Enter your username: ")
-        if username.strip():
+        print("Welcome to Habit Tracker!")
+        
+        global username
+        username = input("Enter your username: ").strip()
+        
+        if username:
+            filename = f"data/{username}.json"
+            os.makedirs("data", exist_ok=True)
+            
+            if not os.path.exists(filename):
+                with open(filename, 'w') as file:
+                    json.dump([], file, indent=4)
             break
-    
     
     while True:
         clear_terminal()
@@ -65,16 +72,14 @@ def main():
         
         try:
             if action == "1":
-                habit = add_habit() # TODO returns
+                habit = add_habit(filename)
 
             elif action == "2":
-                habit = remove_habit() # TODO returns
+                habit = remove_habit(filename)
 
             elif action == "3":
-                
                 while True:
-                    
-                    habits = list_all_habits()
+                    habits = list_all_habits(filename)
                     table = [
                         [i + 1, habit.name, "✅" if TODAY in habit.completed else "❌"]
                         for i, habit in enumerate(habits)
@@ -100,11 +105,11 @@ def main():
                         input("Press Enter to continue...")
                     
                     updated = [habit.format_json() for habit in habits]
-                    with open(FILENAME, 'w') as file:
+                    with open(filename, 'w') as file:
                         json.dump(updated, file, indent=4)
                     
             elif action == "4":
-                habits = list_all_habits()
+                habits = list_all_habits(filename)
                 table = [
                     [habit.name, habit.description, habit.existence, f"{habit.consistency:.0%}"]
                     for habit in habits
@@ -128,7 +133,8 @@ def main():
             input("Press Enter to continue...")
 
 
-def add_habit(name=None):
+def add_habit(filename, name=None):
+    
     clear_terminal()
     print("Add a habit")
     
@@ -138,16 +144,18 @@ def add_habit(name=None):
     if name.strip() == "":
         raise ValueError("Habit name cannot be empty.")
 
-    os.makedirs("data", exist_ok=True)
+    os.makedirs("data", exist_ok=True)  # create data directory if it doesn't exist
     
-    if os.path.exists(FILENAME):
-        with open(FILENAME, 'r') as file:
+    if os.path.exists(filename):
+        with open(filename, 'r') as file:
             try:
                 data = json.load(file)
             except json.JSONDecodeError:
                 data = []
-    else: 
+    else:
         data = []
+        with open(filename, "w") as file:
+            json.dump(data, file, indent=4)
 
     if any(habit["name"].lower() == name.lower() for habit in data):
         raise ValueError(f"Habit '{name}' already exists.")
@@ -155,21 +163,21 @@ def add_habit(name=None):
     habit = Habit(name, description)
     data.append(habit.format_json())
 
-    with open(FILENAME, 'w') as file:
+    with open(filename, 'w') as file:
         json.dump(data, file, indent=4)
     print(f"Habit '{habit.name}' with description '{habit.description}' added successfully.")
 
     return habit
 
 
-def remove_habit(name=None):
+def remove_habit(filename, name=None):
     clear_terminal()
     print("Remove a habit")
     
-    if not os.path.exists(FILENAME):
+    if not os.path.exists(filename):
         raise FileNotFoundError("/data/habits.json does not exist.")
 
-    with open(FILENAME, 'r') as file:
+    with open(filename, 'r') as file:
         try:
             data = json.load(file)
         except json.JSONDecodeError:
@@ -190,7 +198,7 @@ def remove_habit(name=None):
     for i, habit in enumerate(data):
         if habit["name"].lower() == name.lower():
             del data[i]
-            with open(FILENAME, 'w') as file:
+            with open(filename, 'w') as file:
                 json.dump(data, file, indent=4)
             print(f"Habit '{name}' removed successfully.")
             input("Press Enter to return to menu...")
@@ -199,13 +207,13 @@ def remove_habit(name=None):
     raise LookupError(f"Habit '{name}' not found.")
 
 
-def list_all_habits():
-    if not os.path.exists(FILENAME):
+def list_all_habits(filename):
+    if not os.path.exists(filename):
         print("/data/habits.json file containing habits does not exist.")
         input("Press Enter to return to menu...")
         return
 
-    with open(FILENAME, 'r') as file:
+    with open(filename, 'r') as file:
         try:
             data = json.load(file)
         except json.JSONDecodeError:
